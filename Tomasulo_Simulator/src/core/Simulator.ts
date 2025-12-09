@@ -1,13 +1,4 @@
-// ============================================================================
-// SPECULATIVE TOMASULO WITH BRANCH PREDICTION
-// ============================================================================
-// This implements:
-// 1. Speculative execution (instructions issue after branches)
-// 2. "Always not taken" branch prediction
-// 3. Misprediction recovery (flush ROB/RS on mispredict)
-//
-// Replace your Simulator.ts with this modified version
-// ============================================================================
+
 
 import type {
     Instruction,
@@ -81,10 +72,6 @@ export class Simulator {
         return this.program[this.nextIssueIndex];
     }
 
-    // ========================================================================
-    // REMOVED: Non-speculative branch blocking
-    // Instructions can now issue speculatively after branches
-    // ========================================================================
 
     private makeInstrStat(robIdx: number, instr: Instruction) {
         const stat = {
@@ -100,15 +87,10 @@ export class Simulator {
         return stat;
     }
 
-    /* ------------------------
-       ISSUE stage (single-issue with SPECULATION)
-       ------------------------ */
+
     issue(): void {
         const instr = this.peekNextInstr();
         if (!instr) return;
-
-        // ⭐ SPECULATION ENABLED: No blocking on unresolved branches
-        // Instructions can issue speculatively after BEQ/CALL/RET
 
         const type = instr.type as Opcode;
         const rsType = type;
@@ -421,22 +403,20 @@ export class Simulator {
         const stat = this.instrStats.get(commitInstr.pc);
         if (stat) stat.commit = this.cycle + 1;
 
-        // ========================================================================
-        // ⭐ BRANCH MISPREDICTION DETECTION AND RECOVERY
-        // ========================================================================
+
         if (commitType === "BEQ") {
-            // Branch prediction: ALWAYS NOT TAKEN
+
             const predictedPC = commitInstr.pc + 1;
 
-            // Actual outcome
+
             const offset = (commitInstr as any).offset as number;
             const actualPC = commitValue === 1
                 ? commitInstr.pc + 1 + offset  // Taken
                 : commitInstr.pc + 1;          // Not taken
 
-            // Check for misprediction
+
             if (predictedPC !== actualPC) {
-                // ⭐ MISPREDICTION DETECTED!
+                // MISPREDICTION DETECTED!
                 this.mispredicts++;
 
                 // FLUSH PIPELINE:
@@ -452,9 +432,7 @@ export class Simulator {
             }
             // If prediction was correct, continue normally
         }
-        // ========================================================================
-        // END MISPREDICTION RECOVERY
-        // ========================================================================
+
         else if (commitType === "STORE") {
             if (commitAddr !== null && commitValue !== null) {
                 this.mem.write(commitAddr, commitValue);
@@ -490,9 +468,7 @@ export class Simulator {
         this.completedCount++;
     }
 
-    /* ------------------------
-       FLUSH helpers for misprediction recovery
-       ------------------------ */
+
     private flushROBAfterHead(): void {
         // Clear all ROB entries after head (but not head itself)
         let idx = (this.rob.head + 1) % this.rob.size;
@@ -561,9 +537,7 @@ export class Simulator {
         }
     }
 
-    /* ------------------------
-       Single cycle step
-       ------------------------ */
+
     stepOneCycle(): void {
         this.issue();
         this.execute();
@@ -572,9 +546,7 @@ export class Simulator {
         this.cycle++;
     }
 
-    /* ------------------------
-       Snapshot for UI
-       ------------------------ */
+
     snapshot(): SimulatorSnapshot {
         return {
             cycle: this.cycle,
